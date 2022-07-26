@@ -33,17 +33,17 @@ SPACE INVADER PROGRAM
 (define HIT-RANGE 10) 
 (define INVADE-RATE 100)
 (define FRAME (empty-scene WIDTH HEIGHT))
-(define BACKGROUND (place-image (rectangle 150 250 "solid" "white") 150 250 FRAME)) ;image credit: https://hipwallpaper.com/view/472L6i
+(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 150 250 FRAME)) ;image credit: https://hipwallpaper.com/view/472L6i
 
 
-(define GAMEEND (rectangle 30 30 "solid" "red")) ; image credit: https://www.flaticon.com - Good Ware
-(define INVADER (rectangle 30 30 "solid" "yellow")) ; image credit: https://www.flaticon.com - Pixel Budha
+(define GAMEEND (bitmap/file "./img-source/game-over.png")) ; image credit: https://www.flaticon.com - Good Ware
+(define INVADER (bitmap/file "./img-source/invader.png")) ; image credit: https://www.flaticon.com - Pixel Budha
 
-(define TANK (rectangle 30 30 "solid" "purple"))  ; image credit: https://www.flaticon.com - photo3idea studio
+(define TANK (bitmap/file "./img-source/space-ship.png"))  ; image credit: https://www.flaticon.com - photo3idea studio
 
 (define TANK-HEIGHT/2 (/ (image-height TANK) 2)) 
 
-(define MISSILE (rectangle 10 3 "solid" "black")) ; image credit: https://www.flaticon.com - Freepik
+(define MISSILE (bitmap/file "./img-source/missile.png")) ; image credit: https://www.flaticon.com - Freepik
 
                  
 
@@ -472,6 +472,7 @@ SPACE INVADER PROGRAM
            
    
 ;; -------------------------------------------- RENDER
+
 ;; game -> image
 ;; interp: render game on BACKGROUND
 
