@@ -33,7 +33,7 @@ SPACE INVADER PROGRAM
 (define HIT-RANGE 10) 
 (define INVADE-RATE 100)
 (define FRAME (empty-scene WIDTH HEIGHT))
-(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 150 250 FRAME)) ;image credit: https://hipwallpaper.com/view/472L6i
+(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 150 250 FRAME)) ; image credit: https://hipwallpaper.com/view/472L6i
 
 
 (define GAMEEND (bitmap/file "./img-source/game-over.png")) ; image credit: https://www.flaticon.com - Good Ware
@@ -50,7 +50,7 @@ SPACE INVADER PROGRAM
 
 ;; ---------------------------------------------- Data Definitions:
 
-;; ----- main struct
+;; --------------- main struct
 
 (define-struct game (invaders missiles tank))
 ;; Game is (make-game  (listof Invader) (listof Missile) Tank)
@@ -66,7 +66,7 @@ SPACE INVADER PROGRAM
        (fn-for-tank (game-tank s))))
 
 ;; ---------------------------------------------- TANK
-;; -------struct TANK
+;; --------------- struct TANK
 
 (define-struct tank (x dir))
 ;; Tank is (make-tank Number Integer[-1, 1])
@@ -85,7 +85,8 @@ SPACE INVADER PROGRAM
 ;; compound: 2 fields
 
 ;; ----------------------------------------------- INVADERS
-;; -------- struct INVADER
+
+;; ------------- struct INVADER
 (define-struct invader (x y dx))
 ;; Invader is (make-invader Number Number Number)
 ;; interp. the invader is at (x, y) in screen coordinates
@@ -104,7 +105,7 @@ SPACE INVADER PROGRAM
 ;; compound: 3 fields
 
 
-;; -------- ListofInvader
+;; ------------- ListofInvader
 ;; listofinvader is one of:
 ;; - empty
 ;; - (cons invader loi)
@@ -129,15 +130,15 @@ SPACE INVADER PROGRAM
 
 ;; ------------------------------------------------ MISSILES
 
-;; --------- struct MISSILE
+;; ---------------- struct MISSILE
 
 (define-struct missile (x y))
 ;; Missile is (make-missile Number Number)
 ;; interp. the missile's location is x y in screen coordinates
 
-(define M1 (make-missile 150 300))                       ;not hit U1
-(define M2 (make-missile (invader-x I1) (+ (invader-y I1) 10)))  ;exactly hit U1
-(define M3 (make-missile (invader-x I1) (+ (invader-y I1)  5)))  ;> hit U1 
+(define M1 (make-missile 150 300))                       ;not hit I1 (make-invader 150 100 12)
+(define M2 (make-missile (invader-x I1) (+ (invader-y I1) 10)))  ;exactly hit I1 (make-invader 150 100 12)
+(define M3 (make-missile (invader-x I1) (+ (invader-y I1)  5)))  ;> hit I1 (make-invader 150 100 12) 
 
 #;
 (define (fn-for-missile m)
@@ -146,7 +147,9 @@ SPACE INVADER PROGRAM
 ;; template rules used:
 ;; compound: 2 fields
 
-;; -------- list of MISSILE
+
+
+;; -------------- list of MISSILE
 ;; list of missile is one of:
 ;; - empty
 ;; - (cons missile empty)
@@ -173,7 +176,7 @@ SPACE INVADER PROGRAM
 (define G2 (make-game (list I1) (list M1) T1))
 (define G3 (make-game (list I1 I2) (list M1 M2) T1))
 
-;; ---------------------------------------------------- BIG BANG
+;; ============================================== BUILD THE WORLD
 ;; game -> image
 ;; no need test examples for main function
 ;; start the program with (main G0)
