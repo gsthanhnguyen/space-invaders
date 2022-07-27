@@ -19,31 +19,32 @@ SPACE INVADER PROGRAM
 
 
 ;; ------- Constants:
+(define WIDTH  400) 
+(define HEIGHT 700)
 
-(define WIDTH  300) 
-(define HEIGHT 500)
-
+(define FRAME (empty-scene WIDTH HEIGHT))
+(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 200 350 FRAME)) ; image credit: https://hipwallpaper.com/view/472L6i
 
 (define INVADER-X-SPEED 1.5)  ;speeds (not velocities) in pixels per tick
 (define INVADER-Y-SPEED 1.5)
-(define TANK-SPEED 2)
+(define TANK-SPEED 4)
 (define MISSILE-SPEED 25)
 
-
-(define HIT-RANGE 10) 
+(define HIT-RANGE 15) 
 (define INVADE-RATE 100)
-(define FRAME (empty-scene WIDTH HEIGHT))
-(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 150 250 FRAME)) ; image credit: https://hipwallpaper.com/view/472L6i
 
 
 (define GAMEEND (bitmap/file "./img-source/game-over.png")) ; image credit: https://www.flaticon.com - Good Ware
-(define INVADER (bitmap/file "./img-source/invader.png")) ; image credit: https://www.flaticon.com - Pixel Budha
+(define INVADER (scale/xy 0.75 0.75 (bitmap/file "./img-source/invader.png"))) ; image credit: https://www.flaticon.com - Pixel Budha
 
 (define TANK (bitmap/file "./img-source/space-ship.png"))  ; image credit: https://www.flaticon.com - photo3idea studio
-
+(define SHIELD (scale/xy 0.35 0.35 (bitmap/file "./img-source/shield.png")))
+(define TANK-HEIGHT (image-height TANK))
 (define TANK-HEIGHT/2 (/ (image-height TANK) 2)) 
 
-(define MISSILE (bitmap/file "./img-source/missile.png")) ; image credit: https://www.flaticon.com - Freepik
+(define MISSILE (scale/xy 0.45 0.45 (bitmap/file "./img-source/missile.png"))) ; image credit: https://www.flaticon.com - Freepik
+(define EXPLOSION (bitmap/file "./img-source/explosion.png")) ; image credit: https://www.flaticon.com - Victoruler
+(define TANK-EXPLOSION (bitmap/file "./img-source/tank-explosion.png")) ; image credit: https://www.flaticon.com - Good Ware
 
                  
 
@@ -205,12 +206,12 @@ SPACE INVADER PROGRAM
 
 ;(define (tick c) empty) ;stub
 
-
 (define (tick c)
   (make-game (bouncing (moving-i (random-add (collision-i (game-invaders c) (game-missiles c)))))  ;; invader
              (moving-m (collision-m (game-missiles c) (game-invaders c)))  ;; missile   
              (bouncing-t (moving-t (game-tank c))) ;; tank
-             (collision-score (game-missiles c) (game-invaders c) (game-scores c)))) ;; score
+             (count-score (game-invaders c) (game-scores c) (collision-score (game-invaders c) (game-missiles c))))) ;; score
+
 
 ;; ========================= TICK-FOR-INVADERS
 ;; ------ COLLISION-I
@@ -264,6 +265,8 @@ SPACE INVADER PROGRAM
                   (collision-i-helper i1 (rest i2)))]))
 
 
+
+
 ;; ------ RANDOM-ADD
 ;; list of invader -> image
 ;; interp: produce a list of invaders with random quantity that have not been hit by list of missiles
@@ -274,9 +277,9 @@ SPACE INVADER PROGRAM
 
 (define (random-add c) ;; c = list of invaders
   (if (< (random INVADE-RATE) 3)
-      (cons (make-invader (random 300) 60 (if (< (random INVADE-RATE) 6)
-                                             1
-                                             -1)) c)
+      (cons (make-invader (random WIDTH) 80 (if (< (random INVADE-RATE) 6)
+                                                1
+                                                -1)) c)
       c))
                    
 ;; ------ MOVING-I
@@ -441,7 +444,7 @@ SPACE INVADER PROGRAM
 (define (moving-m-helper c)
   (make-missile (missile-x c) (- (missile-y c) MISSILE-SPEED))) 
 
-;; ===============================TICK-FOR-TANK  
+;; ====================================== TICK-FOR-TANK  
 ;; ------ MOVING-T
 ;; tank -> image
 ;; interp: make tank moving left or right with TANK-SPEED
@@ -477,13 +480,30 @@ SPACE INVADER PROGRAM
           (make-tank (tank-x c) 1)
           (make-tank (tank-x c) (tank-dir c)))))
 
-;; =========================================TICK-FOR-SCORE
-(define (collision-score c1 c2 scr) ; c1: list of missile / c2: list of invader
-  (cond [(empty? c1) scr]
-        [(empty? c2) scr]
-        [else (if (collision-m-helper (first c1) c2)
-                  (add1 scr)
-                  scr)]))
+;; -------- COLLISION-TANK
+
+
+;(define (collision-t c1 c2) ;; c1: tank / c2: list of invader
+;  (cond [(empty? c2) c1]
+;        [else (if (and (<= (- HEIGHT (invader-y (first c2))) 100)
+;                       (<= (- (tank-x c1) (invader-x (first c2))) 70)
+;                       (<= (- (invader-x (first c2)) (tank-x c1)) 70))
+;                  c1
+;                  (collision-t c1 (rest c2)))]))
+
+;; ========================================= TICK-FOR-SCORE
+;; lom loi scr -> int
+(define (collision-score loi lom) ; loi: listofinvader / lom: listofmissile
+  (cond [(empty? loi) empty]
+        [(empty? lom) loi]
+        [else (if (collision-i-helper (first loi) lom)
+                  (collision-score (rest loi) lom)
+                  (cons (first loi) (collision-score (rest loi) lom)))]))
+
+;; -> int
+(define (count-score loi scr loi-r)
+  (+ scr (- (length loi) (length loi-r))))
+  
    
 ;; -------------------------------------------- RENDER
 
@@ -502,8 +522,9 @@ SPACE INVADER PROGRAM
 (define (render c)   ; c = (make-game listofinvaders listofmissiles tank)
   (render-invader (game-scores c)
                   (game-invaders c)
+                  (game-missiles c)
                   (render-missile (game-missiles c)
-                                  (render-tank (game-tank c)))))
+                                  (render-tank (game-tank c) (game-invaders c)))))
                                             
 ;; ---------- RENDER-INVADER
 ;; list of invaders -> image
@@ -518,9 +539,9 @@ SPACE INVADER PROGRAM
 ;(define (render-invader c img) empty-image)
 
 
-(define (render-invader scr c1 c2) ;; c1 = (cons (...) (cons (...) empty))
-(cond [(empty? c1) c2] 
-      [else (render-invader-helper scr (first c1) (render-invader scr (rest c1) c2))]))
+(define (render-invader score loi lom render-m)
+  (cond [(empty? loi) render-m] 
+        [else (render-invader-helper score (first loi) lom (render-invader score (rest loi) lom render-m))]))
 
 ;; ----------- RENDER-INVADER-HELPER 
 ;; invader -> image
@@ -532,9 +553,28 @@ SPACE INVADER PROGRAM
 ;(define (render-invader-helper c1 c2) empty-image) ;stub 
 
 
-(define (render-invader-helper scr c1 c2)
-  (place-image (text (number->string scr) 24 "olive") 20 20
-  (place-image INVADER (invader-x c1) (invader-y c1) c2)))  
+; (define (render-invader-helper scr c1 c2)
+;   (place-image (text (number->string scr) 24 "olive") 20 20
+;   (place-image INVADER (invader-x c1) (invader-y c1) c2)))  
+
+(define (render-invader-helper score first-loi lom render-i-recur)
+  (if (collision-i-explosion first-loi lom)
+      (place-image (text (number->string score) 30 "white") 130 24
+                   (place-image EXPLOSION (invader-x first-loi) (invader-y first-loi) render-i-recur))
+      (place-image (text (number->string score) 30 "white") 130 24
+                   (place-image INVADER (invader-x first-loi) (invader-y first-loi) render-i-recur))))
+
+
+
+(define (collision-i-explosion i1 i2)    ;; i1: (make-invader x y dx) / i2: listofmissile
+  (cond [(empty? i2) #false]
+        [else (if (and (<= (- (missile-y (first i2)) (invader-y i1)) HIT-RANGE)
+                       (<= (- (invader-y i1) (missile-y (first i2))) HIT-RANGE)
+                       (<= (- (missile-x (first i2)) (invader-x i1)) HIT-RANGE)
+                       (<= (- (invader-x i1) (missile-x (first i2))) HIT-RANGE))
+                  #true
+                  (collision-i-explosion i1 (rest i2)))]))
+
 
 ;; ----------- RENDER-MISSILE
 ;; list of missiles -> image
@@ -568,16 +608,31 @@ SPACE INVADER PROGRAM
 ;; tank -> image
 ;; interp: render tank image on BACKGROUND
 
-(check-expect (render-tank (make-tank 100 1))
-  (place-image TANK 100 (- HEIGHT TANK-HEIGHT/2) BACKGROUND))
-
-;(define (render-tank c img) empty-image)
+;(check-expect (render-tank (make-tank 100 1))
+;              (place-image TANK 100 (- HEIGHT TANK-HEIGHT/2) BACKGROUND))
 
 
-(define (render-tank c)
-  (place-image TANK (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND))
+;(define (render-tank c loi)
+;  (if (render-t-explosion c loi)
+;      (place-image TANK-EXPLOSION (- (tank-x c) 10) (- HEIGHT 20)
+;                   (place-image TANK-EXPLOSION (+ (tank-x c) 10) (- HEIGHT 20) BACKGROUND))
+;      (place-image TANK (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND)))
 
-;; ------------- RENDER-SCORE-BOARD
+(define (render-tank c loi)
+  (if (render-t-explosion c loi)
+      (place-image TANK-EXPLOSION (tank-x c) (- HEIGHT TANK-HEIGHT/2)
+                   (place-image TANK (tank-x c) (- HEIGHT TANK-HEIGHT/2)
+                                (place-image SHIELD (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND)))
+      (place-image TANK (tank-x c) (- HEIGHT TANK-HEIGHT/2)
+                   (place-image SHIELD (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND))))
+
+(define (render-t-explosion tank loi)
+  (cond [(empty? loi) #false]
+        [else (if (and (<= (- HEIGHT (invader-y (first loi))) (image-height SHIELD))
+                       (<= (- (tank-x tank) (invader-x (first loi))) (/ (image-width SHIELD) 2))
+                       (<= (- (invader-x (first loi)) (tank-x tank)) (/ (image-width SHIELD) 2)))
+                  #true
+                  (render-t-explosion tank (rest loi)))]))
 
                             
 ;; ----------------------- KEY
@@ -681,6 +736,9 @@ SPACE INVADER PROGRAM
 ; (define (endgame c) (make-game empty empty empty)) ;stub
 
 
+;(define (endgame c) ;; c = make-game
+;  (endgame-helper (game-invaders c) (game-tank c)))
+
 (define (endgame c) ;; c = make-game
   (endgame-helper (game-invaders c)))
 
@@ -688,12 +746,18 @@ SPACE INVADER PROGRAM
 ;; list of invaders -> boolean
 ;; interp: produce #true if invader meet the bottom of the BACKGROUND
 
-(check-expect (endgame-helper empty) #false)
-(check-expect (endgame-helper (cons (make-invader 150 100 1) empty)) (endgame-helper empty))
-(check-expect (endgame-helper (cons (make-invader 150 HEIGHT 1) empty)) #true)
+;(check-expect (endgame-helper empty) #false)
+;(check-expect (endgame-helper (cons (make-invader 150 100 1) empty)) (endgame-helper empty))
+;(check-expect (endgame-helper (cons (make-invader 150 HEIGHT 1) empty)) #true)
 
 ;(define (endgame c) empty-image)
 
+
+;(define (endgame-helper c tank) ;; c = list of invaders
+;  (cond [(empty? c) #false]
+;        [else (if (or (>= (invader-y (first c)) HEIGHT) (not (false? (render-t-explosion tank c))))
+;                  #true
+;                  (endgame-helper (rest c) tank))]))
 
 (define (endgame-helper c) ;; c = list of invaders
   (cond [(empty? c) #false]
@@ -709,7 +773,7 @@ SPACE INVADER PROGRAM
 ;(define (gameover-scene c) empty-image)
 
 (define (gameover-scene c)
-  (place-image GAMEEND 150 250 BACKGROUND))
+  (place-image GAMEEND 200 350 BACKGROUND))
 
 ; ======== START GAME
 (main G0)
