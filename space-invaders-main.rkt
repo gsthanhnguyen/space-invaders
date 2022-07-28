@@ -1,12 +1,19 @@
-#|
-SPACE INVADER PROGRAM
-- Tank: move right and left at the bottom of the screen when you press the arrow keys
-- Tank: fire missiles straight up from its current position when you press the space bar.
-- Invaders: appear randomly along the top of the screen and move at a 45 degree angle.
-   - When they hit a wall they will bounce off and continue at a 45 degree angle in the other direction.
-   - When an invader reaches the bottom of the screen, the game is over.
-- Missiles & Invaders: when missles hit the invaders. both of them will disappear
-|#
+#|*************************************************
+SPACE INVADER GAME
+------------------------------
+MAIN FEATURES:
++ Tank:     - move right and left at the bottom of the screen when respectively pressing the left and right arrow keys
+            - fire missiles straight up from its current position when pressing the space bar
++ Invaders: - appear randomly along the top of the screen and move at a 45-degree angle to the tank at the bottom
+              of the screen
+            - when invaders hit a wall then invaders will bounce off and continue at a 45-degree angle in
+              the other direction.
+            - when invaders hit the tank's shield which is a circle area around the tank, a "Boom" animation will
+              be popped it up
+            - when invaders reache the bottom of the screen, the game is over and the "Game over" screen will be popped up
++ Missiles: - when missiles hit the invaders, both of them will be disappeared and "Explosion" animation will be popped up
++ Score:    - scoreboard on top of the game screen will be added by one when the missile hits the invader
+***************************************************|#
 
 #lang htdp/isl+
 
@@ -466,13 +473,13 @@ SPACE INVADER PROGRAM
 (check-expect (collision-score (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) empty) ; (cons listofinvaders none-missiles)
               (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)))
 (check-expect (collision-score (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) ; (cons listofinvaders listofmissiles)
-                           (cons (make-missile 150 100) (cons (make-missile 100 200) empty)))
+                               (cons (make-missile 150 100) (cons (make-missile 100 200) empty)))
               (collision-score (cons (make-invader 150 100 -1) empty)
-                           (cons (make-missile 150 100) (cons (make-missile 100 200) empty))))
+                               (cons (make-missile 150 100) (cons (make-missile 100 200) empty))))
 (check-expect (collision-score (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) ; (cons listofinvaders listofmissiles)
-                           (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))
+                               (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))
               (cons (make-invader 150 100 1) (collision-score (cons (make-invader 150 100 -1) empty)
-                                                          (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))))
+                                                              (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))))
 
 
 (define (collision-score loi lom) ; loi: listofinvader / lom: listofmissile
@@ -483,43 +490,46 @@ SPACE INVADER PROGRAM
                   (cons (first loi) (collision-score (rest loi) lom)))]))
 
 ;; --------------- Count-score
-;; (list -> int
+;; (ListOfInvader Score  ListOfInvader -> Score)
+;; interp: return the number of invaders was hit by missiles
+
+(check-expect (count-score empty 1 empty) 1)
+(check-expect (count-score
+               (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) 0
+               (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty))) 0)
+(check-expect (count-score
+               (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) 0
+               (cons (make-invader 150 100 -1) empty)) 1)
+
+
 (define (count-score loi scr loi-r)
   (+ scr (- (length loi) (length loi-r))))
   
    
-;; -------------------------------------------- RENDER
+;; =========================================================== RENDER =====================================
 
-;; game -> image
+;; (game -> image)
 ;; interp: render game on BACKGROUND
 
-;(check-expect (render G0)
-;              (render-invader empty (render-missile empty (render-tank T0))))
-;
-;(check-expect (render G3)
-;              (render-invader (list I1 I2) (render-missile (list M1 M2) (render-tank T1))))
+(check-expect (render G0)
+              (render-invader 0 empty empty (render-missile empty (render-tank T0 empty))))
+(check-expect (render G3)
+              (render-invader 0 (list I1 I2) (list M1 M2) (render-missile (list M1 M2) (render-tank T1 (list I1 I2)))))
               
-;(define (render c) empty-image) 
 
-
-(define (render c)   ; c = (make-game listofinvaders listofmissiles tank)
-  (render-invader (game-scores c)
-                  (game-invaders c)
-                  (game-missiles c)
-                  (render-missile (game-missiles c)
-                                  (render-tank (game-tank c) (game-invaders c)))))
+(define (render g)   ; c = (make-game listofinvaders listofmissiles tank)
+  (render-invader (game-scores g)
+                  (game-invaders g)
+                  (game-missiles g)
+                  (render-missile (game-missiles g)
+                                  (render-tank (game-tank g) (game-invaders g)))))
                                             
 ;; ---------- RENDER-INVADER
-;; list of invaders -> image
+;; (Score ListOfInvader ListOfMissile render-m -> game)
 ;; interp: render invaders on BACKGROUND
 
-;(check-expect (render-invader empty empty) empty)
-;(check-expect (render-invader (cons (make-invader 150 300 1) empty) BACKGROUND)
-;              (render-invader-helper (make-invader 150 300 1) (render-invader empty BACKGROUND)))
-;(check-expect (render-invader (cons (make-invader 150 300 1) (cons (make-invader 100 200 1) empty)) BACKGROUND)
-;              (render-invader-helper (make-invader 150 300 1) (render-invader (cons (make-invader 100 200 1) empty) BACKGROUND)))
-
-;(define (render-invader c img) empty-image)
+(check-expect (render-invader 0 (list I1) empty (render-missile empty (render-tank T1 (list I1))))
+              (render-invader-helper 0 I1 empty (render-missile empty (render-tank T1 (list I1)))))
 
 
 (define (render-invader score loi lom render-m)
@@ -527,18 +537,11 @@ SPACE INVADER PROGRAM
         [else (render-invader-helper score (first loi) lom (render-invader score (rest loi) lom render-m))]))
 
 ;; ----------- RENDER-INVADER-HELPER 
-;; invader -> image
-;; interp: render invader on BACKGROUND
+;; (Invader -> image)
+;; interp: render an invader on BACKGROUND
+;;        - return number of SCORE and the EXPLOSION image at the position which invader collides missile
+;;        - return number of SCORE and INVADER image
 
-;(check-expect (render-invader-helper (make-invader 150 300 1) BACKGROUND)
-;              (place-image INVADER 150 300 BACKGROUND))
-
-;(define (render-invader-helper c1 c2) empty-image) ;stub 
-
-
-; (define (render-invader-helper scr c1 c2)
-;   (place-image (text (number->string scr) 24 "olive") 20 20
-;   (place-image INVADER (invader-x c1) (invader-y c1) c2)))  
 
 (define (render-invader-helper score first-loi lom render-i-recur)
   (if (collision-i-explosion first-loi lom)
@@ -547,59 +550,48 @@ SPACE INVADER PROGRAM
       (place-image (text (number->string score) 30 "white") 130 24
                    (place-image INVADER (invader-x first-loi) (invader-y first-loi) render-i-recur))))
 
+;; ----------- RENDER-INVADER-EXPLOSION
+;; (Invader ListOfMissile -> Boolean)
+;; interp: render a collision between invader and missile. If collision occuring, return #true, else #false
 
-
-(define (collision-i-explosion i1 i2)    ;; i1: (make-invader x y dx) / i2: listofmissile
-  (cond [(empty? i2) #false]
-        [else (if (and (<= (- (missile-y (first i2)) (invader-y i1)) HIT-RANGE)
-                       (<= (- (invader-y i1) (missile-y (first i2))) HIT-RANGE)
-                       (<= (- (missile-x (first i2)) (invader-x i1)) HIT-RANGE)
-                       (<= (- (invader-x i1) (missile-x (first i2))) HIT-RANGE))
+(define (collision-i-explosion i lom)    ;; i: (make-invader x y dx) / i2: listofmissile
+  (cond [(empty? lom) #false]
+        [else (if (and (<= (- (missile-y (first lom)) (invader-y i)) HIT-RANGE)
+                       (<= (- (invader-y i) (missile-y (first lom))) HIT-RANGE)
+                       (<= (- (missile-x (first lom)) (invader-x i)) HIT-RANGE)
+                       (<= (- (invader-x i) (missile-x (first lom))) HIT-RANGE))
                   #true
-                  (collision-i-explosion i1 (rest i2)))]))
+                  (collision-i-explosion i (rest lom)))]))
 
 
 ;; ----------- RENDER-MISSILE
-;; list of missiles -> image
+;; (ListOfMissile Background -> image)
 ;; interp: render missiles on BACKGROUND
 
 (check-expect (render-missile empty BACKGROUND) BACKGROUND)
 (check-expect (render-missile (cons (make-missile 150 300) empty) BACKGROUND)
               (render-missile-helper (make-missile 150 300) (render-missile empty BACKGROUND)))
 
-;(define (render-missile c img) empty-image)
-
-
-(define (render-missile c1 c2)
-  (cond [(empty? c1) c2]
-        [else (render-missile-helper (first c1) (render-missile (rest c1) c2))]))
+(define (render-missile lom bg)
+  (cond [(empty? lom) bg]
+        [else (render-missile-helper (first lom) (render-missile (rest lom) bg))]))
 
 ;; ------- RENDER-MISSILE-HELPER
-;; missile -> image
+;; (Missile ListOfMissile-> image)
 ;; interp: render missile on BACKGROUND
 
 (check-expect (render-missile-helper (make-missile 150 300) BACKGROUND)
               (place-image MISSILE 150 300 BACKGROUND))
 
-;(define (render-missile-helper p1 p2) BACKGROUND)
 
-
-(define (render-missile-helper p1 p2)
-  (place-image MISSILE (missile-x p1) (missile-y p1) p2))
+(define (render-missile-helper m bg)
+  (place-image MISSILE (missile-x m) (missile-y m) bg))
 
 ;; ------------- RENDER-TANK
-;; tank -> image
+;; (Tank -> image)
 ;; interp: render tank image on BACKGROUND
+;;        - or popup TANK-EXPLOSION image and TANK image when invaders collide closely the tank area 
 
-;(check-expect (render-tank (make-tank 100 1))
-;              (place-image TANK 100 (- HEIGHT TANK-HEIGHT/2) BACKGROUND))
-
-
-;(define (render-tank c loi)
-;  (if (render-t-explosion c loi)
-;      (place-image TANK-EXPLOSION (- (tank-x c) 10) (- HEIGHT 20)
-;                   (place-image TANK-EXPLOSION (+ (tank-x c) 10) (- HEIGHT 20) BACKGROUND))
-;      (place-image TANK (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND)))
 
 (define (render-tank c loi)
   (if (render-t-explosion c loi)
@@ -608,6 +600,10 @@ SPACE INVADER PROGRAM
                                 (place-image SHIELD (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND)))
       (place-image TANK (tank-x c) (- HEIGHT TANK-HEIGHT/2)
                    (place-image SHIELD (tank-x c) (- HEIGHT TANK-HEIGHT/2) BACKGROUND))))
+
+;; ------------- RENDER-TANK-EXPLOSION
+;; (Tank ListOfInvader -> Boolean)
+;; interp: return #true when invader hit the tank within range of SHIELD, else return #false
 
 (define (render-t-explosion tank loi)
   (cond [(empty? loi) #false]
@@ -619,38 +615,36 @@ SPACE INVADER PROGRAM
 
                             
 ;; ----------------------- KEY
-;; keyevent -> image
+;; (keyevent -> image)
 ;; if key pressed is:
 ;;        left arrow -> tank moving on the left direction
 ;;        right arrow -> tank moving on the right direction
 ;;        press space bar -> new missile is fired right at the tank position
 
-;(check-expect (key (make-game empty empty (make-tank 50 1)) "up") (make-game empty empty (make-tank 50 1))) ; up-key -> not changing tank dir
-;(check-expect (key (make-game empty empty (make-tank 50 -1)) "right") (make-game empty empty (make-tank 50 1))) ; right
-;(check-expect (key (make-game empty empty (make-tank 50 1)) "left") (make-game empty empty (make-tank 50 -1))) ;left
-;
-;(check-expect (key (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))  ; first missile fired
-;                              empty
-;                              (make-tank 150 1)) " ")
-;              (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))
-;                         (cons (make-missile 150 (- HEIGHT TANK-HEIGHT/2)) empty)
-;                         (make-tank 150 1)))
-;
-;(check-expect (key (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))  ; sencond missile fired
-;                              (cons (make-missile 150 150) empty)
-;                              (make-tank 170 1)) " ")
-;              (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))
-;                         (cons (make-missile 170 (- HEIGHT TANK-HEIGHT/2)) (cons (make-missile 150 150) empty))
-;                         (make-tank 170 1)))
-;
-;(check-expect (key (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))  ; none missile fired
-;                              empty
-;                              (make-tank 150 1)) "up")
-;              (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))
-;                         empty
-;                         (make-tank 150 1)))
+(check-expect (key (make-game empty empty (make-tank 50 1) 0) "up") (make-game empty empty (make-tank 50 1) 0)) ; up-key -> not changing tank dir
+(check-expect (key (make-game empty empty (make-tank 50 -1) 0) "right") (make-game empty empty (make-tank 50 1) 0)) ; right
+(check-expect (key (make-game empty empty (make-tank 50 1) 0) "left") (make-game empty empty (make-tank 50 -1) 0)) ;left
 
-; (define (key c akey) (make-game empty empty empty) ;stub
+(check-expect (key (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))  ; first missile fired
+                              empty
+                              (make-tank 150 1) 0) " ")
+              (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))
+                         (cons (make-missile 150 (- HEIGHT TANK-HEIGHT/2)) empty)
+                         (make-tank 150 1) 0))
+
+(check-expect (key (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))  ; sencond missile fired
+                              (cons (make-missile 150 150) empty)
+                              (make-tank 170 1) 0) " ")
+              (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))
+                         (cons (make-missile 170 (- HEIGHT TANK-HEIGHT/2)) (cons (make-missile 150 150) empty))
+                         (make-tank 170 1) 0))
+
+(check-expect (key (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))  ; none missile fired
+                              empty
+                              (make-tank 150 1) 0) "up")
+              (make-game (cons (make-invader 100 100 1) (cons (make-invader 150 150 -1) empty))
+                         empty
+                         (make-tank 150 1) 0))
 
 
 (define (key c akey)
@@ -660,104 +654,82 @@ SPACE INVADER PROGRAM
         [else c])) 
 
 ;; ----- TANK-LEFT
-;; game -> image
+;; (game -> image)
 ;; interp: press left arrow key and the tank heads in left direction
 
 (check-expect (tank-left (make-tank 150 1)) (make-tank 150 -1))
 (check-expect (tank-left (make-tank 150 -1)) (make-tank 150 -1))
 
-;(define (tank-left c) empty)
 
-
-(define (tank-left c)  ;; c = game-tank
-  (make-tank (tank-x c) -1))
+(define (tank-left t)  ;; t = game-tank
+  (make-tank (tank-x t) -1))
 
 
 ;; ------ TANK-RIGHT
-;; game -> image
+;; (game -> image)
 ;; interp: press right arrow key and the tank heads in right direction
 
 (check-expect (tank-right (make-tank 150 1)) (make-tank 150 1))
 (check-expect (tank-right (make-tank 150 -1)) (make-tank 150 1))
 
-;(define (tank-right c) empty)
-
-
-(define (tank-right c)  ;; c = game-tank
-  (make-tank (tank-x c) 1))
+(define (tank-right t)  ;; t = game-tank
+  (make-tank (tank-x t) 1))
 
 ;; MISSILE FIRE
-;; game -> image
+;; (game -> image)
 ;; interp: press space bar and missile is fired right at the position of tank
 
 (check-expect (missile-fire empty (make-tank 150 1)) (cons (make-missile 150 (- HEIGHT TANK-HEIGHT/2)) empty))
 (check-expect (missile-fire (cons (make-missile 100 100) empty) (make-tank 150 1)) (cons (make-missile 150 (- HEIGHT TANK-HEIGHT/2))
                                                                                          (cons (make-missile 100 100) empty)))
 
-;(define (missile-fire c1 c2) empty)
+(define (missile-fire lom t) ;; lom: game-missile / t: game-tank
+  (cons (make-missile (tank-x t) (- HEIGHT TANK-HEIGHT/2)) lom))
 
 
-(define (missile-fire c1 c2) ;; c1: game-missile / c2: game-tank
-  (cons (make-missile (tank-x c2) (- HEIGHT TANK-HEIGHT/2)) c1))
-
-
-;; ------------------------------- ENDGAME
-;; key event -> image
+;; ========================================== ENDGAME
+;; (key event -> image)
 ;; interp: game end once an invader reachs to the bottom of the BACKGROUND
 
-;(check-expect (endgame (make-game empty empty (make-tank 150 1)))
-;              (endgame-helper empty))
-;(check-expect (endgame (make-game (cons (make-invader 150 100 1) empty)
-;                                  (cons (make-missile 150 150) empty)
-;                                  (make-tank 150 1)))
-;              (endgame-helper (cons (make-invader 150 100 1) empty)))
-;(check-expect (endgame (make-game (cons (make-invader 150 HEIGHT 1) empty)
-;                                  (cons (make-missile 150 150) empty)
-;                                  (make-tank 150 1)))
-;              (endgame-helper (cons (make-invader 150 HEIGHT 1) empty)))
-
-; (define (endgame c) (make-game empty empty empty)) ;stub
+(check-expect (endgame (make-game empty empty (make-tank 150 1) 0))
+              (endgame-helper empty))
+(check-expect (endgame (make-game (cons (make-invader 150 100 1) empty)
+                                  (cons (make-missile 150 150) empty)
+                                  (make-tank 150 1) 0))
+              (endgame-helper (cons (make-invader 150 100 1) empty)))
+(check-expect (endgame (make-game (cons (make-invader 150 HEIGHT 1) empty)
+                                  (cons (make-missile 150 150) empty)
+                                  (make-tank 150 1) 0))
+              (endgame-helper (cons (make-invader 150 HEIGHT 1) empty)))
 
 
-;(define (endgame c) ;; c = make-game
-;  (endgame-helper (game-invaders c) (game-tank c)))
-
-(define (endgame c) ;; c = make-game
-  (endgame-helper (game-invaders c)))
+(define (endgame g) ;; g = make-game
+  (endgame-helper (game-invaders g)))
 
 ;; ------------ ENDGAME-HELPER
 ;; list of invaders -> boolean
 ;; interp: produce #true if invader meet the bottom of the BACKGROUND
 
-;(check-expect (endgame-helper empty) #false)
-;(check-expect (endgame-helper (cons (make-invader 150 100 1) empty)) (endgame-helper empty))
-;(check-expect (endgame-helper (cons (make-invader 150 HEIGHT 1) empty)) #true)
-
-;(define (endgame c) empty-image)
+(check-expect (endgame-helper empty) #false)
+(check-expect (endgame-helper (cons (make-invader 150 100 1) empty)) (endgame-helper empty))
+(check-expect (endgame-helper (cons (make-invader 150 HEIGHT 1) empty)) #true)
 
 
-;(define (endgame-helper c tank) ;; c = list of invaders
-;  (cond [(empty? c) #false]
-;        [else (if (or (>= (invader-y (first c)) HEIGHT) (not (false? (render-t-explosion tank c))))
-;                  #true
-;                  (endgame-helper (rest c) tank))]))
-
-(define (endgame-helper c) ;; c = list of invaders
-  (cond [(empty? c) #false]
-        [else (if (>= (invader-y (first c)) HEIGHT)
+(define (endgame-helper loi) ;; loi = list of invaders
+  (cond [(empty? loi) #false]
+        [else (if (>= (invader-y (first loi)) HEIGHT)
                   #true
-                  (endgame-helper (rest c)))]))
+                  (endgame-helper (rest loi)))]))
 
-;; GAME OVER SCENE
-;; event -> image
+;; -------------- GAME OVER SCENE
+;; (event -> image)
 ;; interp: produce the GAMEOVER screen when the game ends.
 ;; no need test examples
-
-;(define (gameover-scene c) empty-image)
 
 (define (gameover-scene c)
   (place-image GAMEEND 200 350 BACKGROUND))
 
 ; ======== START GAME
+;; interp: only need to push PLAY button to start the game
 (main G0)
 
