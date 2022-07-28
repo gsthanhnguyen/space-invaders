@@ -1,9 +1,9 @@
 # Space Invaders
 
-I developed this program from scratch based on all design patterns learned after completing a course in Systematic Program Design at UBC. That curriculum is based on [How to Design Programs](http://htdp.org/)
+I developed this program from scratch based on all design patterns learned after completing a course in **Systematic Program Design** at UBC. That curriculum is based on [How to Design Programs](http://htdp.org/)
 
 * By applying the fundamental approach in [How to Design World](https://world.cs.brown.edu/), I implemented cores features of the classic Space Invaders game and designed some new game assets (e.g. explosion when a missile hits an invader, scoreboard, pop-up animation when an invader hits a spaceship)
-* My approach to this personal project used top-down systematic design and thorough test-driven development at every step. The code is entirely written in Racket's Intermediate Student, a pure functional language. It also uses the How to design world framework for interactive programs and basic animations.
+* My approach to this personal project used top-down systematic design and thorough **test-driven development** at every step. The code is entirely written in Racket's Intermediate Student, **a pure functional language**. It also uses the How to design world framework for interactive programs and basic animations.
 
 # Features
 
@@ -16,9 +16,8 @@ Space Invaders game's features:
 
 **Invaders**
 
-* Appear randomly along the top of the screen and move at a 45-degree angle to the tank at the bottom of the screen.
-* When invaders hit a wall then invaders will bounce off and continue at a 45-degree angle in
-  the other direction.
+* Appear randomly along the top of the screen and move at a 45-degree angle to the tank at the bottom of the screen
+* When invaders hit a wall then invaders will bounce off and continue at a 45-degree angle in the other direction.
 * When invaders hit the tank's shield which is a circle area around the tank, a "Boom" animation will
   be popped it up
 * When invaders reach the bottom of the screen, the game is over and the "Game over" screen will be popped up
@@ -31,7 +30,7 @@ Space Invaders game's features:
 
 * Scoreboard on top of the game screen will be added by one when the missile hits the invader
 
-#### Game play screen capture
+### Game play screen capture
 
 Space ship fires missiles and when missiles hit invaders
 
@@ -43,9 +42,9 @@ Invaders collide the space ship and Game Over when invaders reach the end the sc
 
 # User Information
 
-**How to install DrRacket IDE and run from source code:** 
+**How to install DrRacket IDE and run from source code:**
 
-Install the latest version of [DrRacket](https://racket-lang.org/). Download the repository and open the **space-invaders-main.rkt** source file in DrRacket, then run the program using the DrRacket IDE.
+Install the latest version of [DrRacket](https://racket-lang.org/). Download the repository and open the **[space-invaders-main.rkt](https://github.com/gsthanhnguyen/space-invaders/blob/main/space-invaders-main.rkt)** source file in DrRacket, then run the program by pressing Play button in the DrRacket IDE.
 
 **Using the program:**
 
