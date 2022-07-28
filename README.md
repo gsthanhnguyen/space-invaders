@@ -1,4 +1,4 @@
-# Space Invaders
+# Space Invaders Game
 
 I developed this program from scratch based on all design patterns learned after completing a course in **Systematic Program Design** at UBC. That curriculum is based on [How to Design Programs](http://htdp.org/)
 
@@ -16,15 +16,13 @@ Space Invaders game's features:
 
 **Invaders**
 
-* Appear randomly along the top of the screen and move at a 45-degree angle to the tank at the bottom of the screen
-* When invaders hit a wall then invaders will bounce off and continue at a 45-degree angle in the other direction.
-* When invaders hit the tank's shield which is a circle area around the tank, a "Boom" animation will
-  be popped it up
-* When invaders reach the bottom of the screen, the game is over and the "Game over" screen will be popped up
+* Appear randomly along the top of the screen and move at a 45-degree angle. When invaders hit a wall, they will bounce off and continue at a 45-degree angle in the other direction.
+* When invaders hit the tank's shield which is a circle area around the tank, a "Boom" animation is popped up
+* When invaders reach the screen bottom, the game is over and the "Game over" screen will be appeared
 
 **Missiles**
 
-* When missiles hit the invaders, both of them will be disappeared and the "Explosion" animation will be popped up
+* When missiles hit the invaders, both of them will be disappeared and the "Explosion" animation is popped up
 
 **Score**
 
