@@ -22,40 +22,38 @@ SPACE INVADER PROGRAM
 (define HEIGHT 700)
 
 (define FRAME (empty-scene WIDTH HEIGHT))
-(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 200 350 FRAME)) ; image credit: https://hipwallpaper.com/view/472L6i
+(define BACKGROUND (place-image (bitmap/file "./img-source/dark-space.png") 200 350 FRAME)) ; image credit: Pinterest
 
 (define INVADER-X-SPEED 1.5)  ;speeds (not velocities) in pixels per tick
 (define INVADER-Y-SPEED 1.5)
 (define TANK-SPEED 4)
-(define MISSILE-SPEED 25)
+(define MISSILE-SPEED 20)
 
 (define HIT-RANGE 15) 
 (define INVADE-RATE 100)
-
 
 (define GAMEEND (bitmap/file "./img-source/game-over.png")) ; image credit: https://www.flaticon.com - Good Ware
 (define INVADER (scale/xy 0.75 0.75 (bitmap/file "./img-source/invader.png"))) ; image credit: https://www.flaticon.com - Pixel Budha
 
 (define TANK (bitmap/file "./img-source/space-ship.png"))  ; image credit: https://www.flaticon.com - photo3idea studio
-(define SHIELD (scale/xy 0.35 0.35 (bitmap/file "./img-source/shield.png")))
+(define SHIELD (scale/xy 0.35 0.35 (bitmap/file "./img-source/shield.png"))) ; image credit: https://www.flaticon.com
 (define TANK-HEIGHT (image-height TANK))
 (define TANK-HEIGHT/2 (/ (image-height TANK) 2)) 
 
 (define MISSILE (scale/xy 0.45 0.45 (bitmap/file "./img-source/missile.png"))) ; image credit: https://www.flaticon.com - Freepik
 (define EXPLOSION (bitmap/file "./img-source/explosion.png")) ; image credit: https://www.flaticon.com - Victoruler
-(define TANK-EXPLOSION (bitmap/file "./img-source/tank-explosion.png")) ; image credit: https://www.flaticon.com - Good Ware
+(define TANK-EXPLOSION (bitmap/file "./img-source/tank-explosion.png")) ; image credit: https://www.flaticon.com 
 
                  
 
 
-;; ---------------------------------------------- Data Definitions:
-
+;; =========================================================== DATA DEFINITIONS ========================================
 ;; --------------- main struct
 
 (define-struct game (invaders missiles tank scores))
-;; Game is (make-game  (listof Invader) (listof Missile) Tank)
+;; Game is (make-game  (listof Invader) (listof Missile) Tank Score)
 ;; interp. the current state of a space invaders game
-;;         with the current invaders, missiles and tank position
+;;         with the current invaders, missiles, tank position and accumulated score
 
 ;; Game constants defined below Missile data definition
 
@@ -63,7 +61,8 @@ SPACE INVADER PROGRAM
 (define (fn-for-game s)
   (... (fn-for-loinvader (game-invaders s))
        (fn-for-lom (game-missiles s))
-       (fn-for-tank (game-tank s))))
+       (fn-for-tank (game-tank s))
+       (fn-for-score (game-scores s))))
 
 ;; ---------------------------------------------- TANK
 ;; --------------- struct TANK
@@ -129,7 +128,6 @@ SPACE INVADER PROGRAM
 ;; listofinvader is (cons invader listofinvaders)
 
 ;; ------------------------------------------------ MISSILES
-
 ;; ---------------- struct MISSILE
 
 (define-struct missile (x y))
@@ -170,20 +168,19 @@ SPACE INVADER PROGRAM
 ;; reference: (first c) is missile
 ;; self-reference: (rest c) is list of missiles
 
-;; ---------------- struct SCORE
-;(define-struct scores (x))
-
-;; ------
+;; ----- Some instantiation of game
 (define G0 (make-game empty empty T0 0))
 (define G1 (make-game empty empty T1 0))
 (define G2 (make-game (list I1) (list M1) T1 0))
 (define G3 (make-game (list I1 I2) (list M1 M2) T1 0))
 
-;; ============================================== BUILD THE WORLD
+
+
+
+;; ============================================== BUILD THE WORLD =======================================================
 ;; game -> image
 ;; no need test examples for main function
 ;; start the program with (main G0)
-
 
 
 (define (main c)
@@ -194,16 +191,17 @@ SPACE INVADER PROGRAM
     (stop-when endgame gameover-scene))) ; event -> boolean
 
 
-;; ============================================= TICK
-;; list of invader, missile and tank -> image
-;; makes tank, invaders and missile change position every second
 
-;(check-random (tick (make-game empty empty (make-tank 100 1)))
-;              (make-game (bouncing (moving-i (random-add (collision-i empty empty))))
-;                         (moving-m (collision-m empty empty))
-;                         (bouncing-t (moving-t (make-tank 100 1))))) 
+;; ===================================================== TICK ============================================================
+;; list of invader, missile, tank and score -> image
+;; makes tank, invaders and missile change position, and calculate score every second
 
-;(define (tick c) empty) ;stub
+(check-random (tick (make-game empty empty (make-tank 100 1) 0))
+              (make-game (bouncing (moving-i (random-add (collision-i empty empty))))
+                         (moving-m (collision-m empty empty))
+                         (bouncing-t (moving-t (make-tank 100 1)))
+                         (count-score empty 0 (collision-score empty empty))))
+
 
 (define (tick c)
   (make-game (bouncing (moving-i (random-add (collision-i (game-invaders c) (game-missiles c)))))  ;; invader
@@ -212,9 +210,10 @@ SPACE INVADER PROGRAM
              (count-score (game-invaders c) (game-scores c) (collision-score (game-invaders c) (game-missiles c))))) ;; score
 
 
-;; ========================= TICK-FOR-INVADERS
-;; ------ COLLISION-I
-;; list of invaders & list of missiles -> list of invaders
+;; ============================ TICK-FOR-INVADERS
+
+;; -------- COLLISION-I
+;; (ListOfInvaders ListOfMissiles -> ListOfInvaders ListOfMissiles)
 ;; interp: produce list of invaders that have not been hit by missiles from the list of invaders
 ;;         define successful hit is missiles that meet invaders within "HIT RANGE" on x & y coordinator
 
@@ -231,18 +230,17 @@ SPACE INVADER PROGRAM
                                                           (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))))
 
 
-;(define (collision-i c1 c2) empty) ;stub
+(define (collision-i loi lom) ;; loi: listofinvader / lom: listofmissile
+  (cond [(empty? loi) empty]
+        [(empty? lom) loi]
+        [else (if (collision-i-helper (first loi) lom)
+                  (collision-i (rest loi) lom)
+                  (cons (first loi) (collision-i (rest loi) lom)))]))
 
 
-(define (collision-i c1 c2) ;; c1: listofinvader / c2: listofmissile
-  (cond [(empty? c1) empty]
-        [(empty? c2) c1]
-        [else (if (collision-i-helper (first c1) c2)
-                  (collision-i (rest c1) c2)
-                  (cons (first c1) (collision-i (rest c1) c2)))]))
 
-;; ------ COLLISION-I-HELPER
-;; invader & list of missiles -> boolean
+;; --------- COLLISION-I-HELPER
+;; (Invader ListOfMissiles -> boolean)
 ;; interp: produce #true if invader hits the list of missiles
 
 (check-expect (collision-i-helper (make-invader 150 100 1) (cons (make-missile 151 101) (cons (make-missile 100 200) empty))) ; invader hits missiles
@@ -251,38 +249,34 @@ SPACE INVADER PROGRAM
               (collision-i-helper (make-invader 150 100 1) (cons (make-missile 100 200) empty)))
                                   
 
-;(define (collision-i-helper i1 i2) #true)
 
-
-(define (collision-i-helper i1 i2)    ;; i1: (make-invader x y dx) / i2: listofmissile
-  (cond [(empty? i2) #false]
-        [else (if (and (<= (- (missile-y (first i2)) (invader-y i1)) HIT-RANGE)
-                       (<= (- (invader-y i1) (missile-y (first i2))) HIT-RANGE)
-                       (<= (- (missile-x (first i2)) (invader-x i1)) HIT-RANGE)
-                       (<= (- (invader-x i1) (missile-x (first i2))) HIT-RANGE))
+(define (collision-i-helper first-loi lom)   ;; first-loi: invader, lom: list of missiles
+  (cond [(empty? lom) #false]
+        [else (if (and (<= (- (missile-y (first lom)) (invader-y first-loi)) HIT-RANGE)
+                       (<= (- (invader-y first-loi) (missile-y (first lom))) HIT-RANGE)
+                       (<= (- (missile-x (first lom)) (invader-x first-loi)) HIT-RANGE)
+                       (<= (- (invader-x first-loi) (missile-x (first lom))) HIT-RANGE))
                   #true
-                  (collision-i-helper i1 (rest i2)))]))
+                  (collision-i-helper first-loi (rest lom)))]))
 
 
 
 
 ;; ------ RANDOM-ADD
-;; list of invader -> image
+;; (ListOfInvader -> ListOfInvader)
 ;; interp: produce a list of invaders with random quantity that have not been hit by list of missiles
 ;;         list of invaders appear on the top of background in random position along width
 
-;(define (random-add c) empty) ;stub
 
-
-(define (random-add c) ;; c = list of invaders
+(define (random-add loi) ;; loi = list of invaders
   (if (< (random INVADE-RATE) 3)
       (cons (make-invader (random WIDTH) 80 (if (< (random INVADE-RATE) 6)
                                                 1
-                                                -1)) c)
-      c))
+                                                -1)) loi)
+      loi))
                    
 ;; ------ MOVING-I
-;; list of invader -> image
+;; (ListOfInvader -> ListOfInvader)
 ;; interp: produce list of invader moving with a 45 degree angle
 
 (check-expect (moving-i empty) empty)
@@ -292,16 +286,14 @@ SPACE INVADER PROGRAM
               (cons (moving-i-helper (make-invader 150 100 1))
                     (cons (moving-i-helper (make-invader 150 100 -1)) empty)))
 
-;(define (moving-i c) empty)
 
-
-(define (moving-i c)
-  (cond [(empty? c) empty]
-        [else (cons (moving-i-helper (first c))
-                    (moving-i (rest c)))]))
+(define (moving-i loi)
+  (cond [(empty? loi) empty]
+        [else (cons (moving-i-helper (first loi))
+                    (moving-i (rest loi)))]))
         
 ;; ------ MOVING-I-HELPER
-;; invader -> image 
+;; (Invader -> Invader) 
 ;; interp: make invader moving with a 45 degree angle with INVADER-X-SPEED and INVADER-Y-SPEED
 
 (check-expect (moving-i-helper (make-invader 150 100 1))
@@ -313,17 +305,16 @@ SPACE INVADER PROGRAM
                             (+ 100 (* INVADER-Y-SPEED 1))
                             -1)) 
 
-;(define (moving-i-helper c) (make-invader 0 0 0))
 
 
-(define (moving-i-helper c) ;; c = invader
-  (make-invader (+ (invader-x c) (* INVADER-X-SPEED (invader-dx c)))
-                (+ (invader-y c) (* INVADER-Y-SPEED (abs (invader-dx c))))
-                (invader-dx c)))
+(define (moving-i-helper i) ;; i = invader
+  (make-invader (+ (invader-x i) (* INVADER-X-SPEED (invader-dx i)))
+                (+ (invader-y i) (* INVADER-Y-SPEED (abs (invader-dx i))))
+                (invader-dx i)))
   
 
 ;; ------ BOUNCING
-;; list of invaders -> image
+;; (ListOfInvader -> ListOfInvader)
 ;; interp: make invaders turn opposite direction when they hit the edge on the left and right side
 
 (check-expect (bouncing empty) empty)
@@ -333,16 +324,14 @@ SPACE INVADER PROGRAM
               (cons (bouncing-helper (make-invader 150 100 1))
                     (cons (bouncing-helper (make-invader 150 100 -1)) empty)))
 
-;(define (bouncing c) empty)
 
-
-(define (bouncing c)  ;; c = listofinvader
-  (cond [(empty? c) empty]
-        [else (cons (bouncing-helper (first c))
-                    (bouncing (rest c)))]))
+(define (bouncing loi)  ;; loi = listofinvader
+  (cond [(empty? loi) empty]
+        [else (cons (bouncing-helper (first loi))
+                    (bouncing (rest loi)))]))
 
 ;; ------ BOUNCING-HELPER
-;; invader -> image
+;; (Invader -> Invader)
 ;; interp: produce invader will turn opposite direction when meeting two side of edge
 ;;         moving from left to right when dir = 1
 ;;         moving from right to left when dir = -1
@@ -351,47 +340,42 @@ SPACE INVADER PROGRAM
 (check-expect (bouncing-helper (make-invader 0 100 -1)) (make-invader 0 100 1))
 (check-expect (bouncing-helper (make-invader WIDTH 100 1)) (make-invader WIDTH 100 -1))
 
-;(define (bouncing-helper c) (make-invader 0 0 0))
 
+(define (bouncing-helper i) ;; i: invader
+  (if (<= (invader-x i) 0)
+      (make-invader 0 (invader-y i) (* (invader-dx i) -1))
+      (if (>= (invader-x i) WIDTH)
+          (make-invader WIDTH (invader-y i) (* (invader-dx i) -1))
+          i))) 
 
-(define (bouncing-helper c)
-  (if (<= (invader-x c) 0)
-      (make-invader 0 (invader-y c) (* (invader-dx c) -1))
-      (if (>= (invader-x c) WIDTH)
-          (make-invader WIDTH (invader-y c) (* (invader-dx c) -1))
-          c))) 
-
-;; ======================================TICK-FOR-MISSILE
+;; ===================================== TICK-FOR-MISSILE
 ;; ----------------- COLLISION-M
-;; list of missile & list of invader -> list of missile
+;; (ListOfMissile ListOfInvader -> ListOfMissile)
 ;; interp: produce list of missiles that have not been hit by invaders from the list of missiles
 ;;         define successful hit is missiles that meet invaders within "HIT RANGE" on x & y coordinator
 
 
-;(check-expect (collision-m empty (cons (make-invader 150 100 1) empty)) empty)
-;(check-expect (collision-m (cons (make-missile 150 300) empty) empty) (cons (make-missile 150 300) empty))
-;(check-expect (collision-m (cons (make-missile 150 300) (cons (make-missile 100 200) empty)) 
-;                           (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty))) ;; false
-;              (cons (make-missile 150 300) (collision-m (cons (make-missile 100 200) empty)
-;                                                        (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)))))
-;(check-expect (collision-m (cons (make-missile 150 300) (cons (make-missile 100 200) empty))
-;                           (cons (make-invader 150 300 1) (cons (make-invader 150 100 -1) empty)) 0) ;; true
-;              (collision-m (cons (make-missile 100 200) empty)
-;                           (cons (make-invader 150 300 1) (cons (make-invader 150 100 -1) empty)) 1))
+(check-expect (collision-m empty (cons (make-invader 150 100 1) empty)) empty)
+(check-expect (collision-m (cons (make-missile 150 300) empty) empty) (cons (make-missile 150 300) empty))
+(check-expect (collision-m (cons (make-missile 150 300) (cons (make-missile 100 200) empty)) 
+                           (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty))) ;; false
+              (cons (make-missile 150 300) (collision-m (cons (make-missile 100 200) empty)
+                                                        (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)))))
+(check-expect (collision-m (cons (make-missile 150 300) (cons (make-missile 100 200) empty))
+                           (cons (make-invader 150 300 1) (cons (make-invader 150 100 -1) empty))) ;; true
+              (cons (make-missile 100 200) empty))
 
 
-;(define (collision-m c1 c2) empty)
 
-
-(define (collision-m c1 c2) ; c1: list of missile / c2: list of invader
-  (cond [(empty? c1) empty]
-        [(empty? c2) c1]
-        [else (if (collision-m-helper (first c1) c2)
-                  (collision-m (rest c1) c2)
-                  (cons (first c1) (collision-m (rest c1) c2)))]))
+(define (collision-m lom loi) ; lom: list of missile / loi: list of invader
+  (cond [(empty? lom) empty]
+        [(empty? loi) lom]
+        [else (if (collision-m-helper (first lom) loi)
+                  (collision-m (rest lom) loi)
+                  (cons (first lom) (collision-m (rest lom) loi)))]))
 
 ;; ------- COLLISION-M-HELPER
-;; missile, listofinvader -> boolean
+;; (Missile ListOfInvader -> boolean)
 ;; interp: produce #true when the missile has been hit a list of invaders
 
 (check-expect (collision-m-helper (make-missile 150 300) empty) #false)
@@ -399,20 +383,18 @@ SPACE INVADER PROGRAM
 (check-expect (collision-m-helper (make-missile 150 300) (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty))) ;false
               (collision-m-helper (make-missile 150 300) (cons (make-invader 150 100 -1) empty)))
 
-;(define (collision-m-helper c1 c2) #true)
 
-
-(define (collision-m-helper c1 c2) ;; c1: first missile / c2: list of invader
-  (cond [(empty? c2) #false]
-        [else (if (and (<= (- (missile-y c1) (invader-y (first c2))) HIT-RANGE)
-                       (<= (- (invader-y (first c2)) (missile-y c1)) HIT-RANGE)
-                       (<= (- (missile-x c1) (invader-x (first c2))) HIT-RANGE)
-                       (<= (- (invader-x (first c2)) (missile-x c1)) HIT-RANGE))
+(define (collision-m-helper first-lom loi) ;; first-lom: first missile / loi: list of invader
+  (cond [(empty? loi) #false]
+        [else (if (and (<= (- (missile-y first-lom) (invader-y (first loi))) HIT-RANGE)
+                       (<= (- (invader-y (first loi)) (missile-y first-lom)) HIT-RANGE)
+                       (<= (- (missile-x first-lom) (invader-x (first loi))) HIT-RANGE)
+                       (<= (- (invader-x (first loi)) (missile-x first-lom)) HIT-RANGE))
                   #true
-                  (collision-m-helper c1 (rest c2)))]))
+                  (collision-m-helper first-lom (rest loi)))]))
                   
 ;; ------ MOVING-M
-;; listofmissile -> image
+;; (ListOfMissile -> ListOfMissile)
 ;; interp: make list of missiles move up-right with MISSILE-SPEED
 
 (check-expect (moving-m empty) empty)
@@ -421,31 +403,27 @@ SPACE INVADER PROGRAM
 (check-expect (moving-m (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))
               (cons (moving-m-helper (make-missile 150 300)) (moving-m (cons (make-missile 100 200) empty))))
 
-;(define (moving-m c) empty)
 
-
-(define (moving-m c)
-  (cond [(empty? c) empty]
-        [else (cons (moving-m-helper (first c))
-                    (moving-m (rest c)))]))
+(define (moving-m lom)
+  (cond [(empty? lom) empty]
+        [else (cons (moving-m-helper (first lom))
+                    (moving-m (rest lom)))]))
 
 
 ;; ------ MOVING-M-HELPER
-;; missile -> image
+;; (Missile -> Missile)
 ;; interp: make missile moving up-right
 
 (check-expect (moving-m-helper (make-missile 150 300)) (make-missile 150 (- 300 MISSILE-SPEED)))
 (check-expect (moving-m-helper (make-missile 150 100)) (make-missile 150 (- 100 MISSILE-SPEED)))
 
-;(define (moving-m-helper c) (make-missile 0 0))
 
-
-(define (moving-m-helper c)
-  (make-missile (missile-x c) (- (missile-y c) MISSILE-SPEED))) 
+(define (moving-m-helper m)
+  (make-missile (missile-x m) (- (missile-y m) MISSILE-SPEED))) 
 
 ;; ====================================== TICK-FOR-TANK  
-;; ------ MOVING-T
-;; tank -> image
+;; ------------ MOVING-T
+;; (Tank -> Tank)
 ;; interp: make tank moving left or right with TANK-SPEED
 ;;         when tank-dx = 1 -> tank moving right
 ;;         when tank-dx = -1 -> tank moving left
@@ -453,45 +431,50 @@ SPACE INVADER PROGRAM
 (check-expect (moving-t (make-tank 100 1)) (make-tank (+ 100 TANK-SPEED) 1))
 (check-expect (moving-t (make-tank 100 -1)) (make-tank (- 100 TANK-SPEED) -1))
 
-;(define (moving-t c) empty)
 
-
-(define (moving-t c)
-  (if (>= (tank-dir c) 1)
-      (make-tank (+ (tank-x c) TANK-SPEED) 1)
-      (make-tank (- (tank-x c) TANK-SPEED) -1)))
+(define (moving-t t)
+  (if (>= (tank-dir t) 1)
+      (make-tank (+ (tank-x t) TANK-SPEED) 1)
+      (make-tank (- (tank-x t) TANK-SPEED) -1)))
 
 ;; ------- BOUNCING-TANK
-;; tank -> image
+;; (Tank -> Tank)
 ;; interp: make the tank turns to the opposite direction when it hit the left & right edge
 
 (check-expect (bouncing-t (make-tank 100 1)) (make-tank 100 1))
-(check-expect (bouncing-t (make-tank 300 1)) (make-tank 300 -1))
+(check-expect (bouncing-t (make-tank 400 1)) (make-tank 400 -1))
 (check-expect (bouncing-t (make-tank 0 -1)) (make-tank 0 1))
 
-;(define (bouncing-t c) (make-tank 0 0)) stub
 
+(define (bouncing-t t)
+  (if (>= (tank-x t) WIDTH)
+      (make-tank (tank-x t) -1)
+      (if (<= (tank-x t) 0)
+          (make-tank (tank-x t) 1)
+          (make-tank (tank-x t) (tank-dir t)))))
 
-(define (bouncing-t c)
-  (if (>= (tank-x c) WIDTH)
-      (make-tank (tank-x c) -1)
-      (if (<= (tank-x c) 0)
-          (make-tank (tank-x c) 1)
-          (make-tank (tank-x c) (tank-dir c)))))
-
-;; -------- COLLISION-TANK
-
-
-;(define (collision-t c1 c2) ;; c1: tank / c2: list of invader
-;  (cond [(empty? c2) c1]
-;        [else (if (and (<= (- HEIGHT (invader-y (first c2))) 100)
-;                       (<= (- (tank-x c1) (invader-x (first c2))) 70)
-;                       (<= (- (invader-x (first c2)) (tank-x c1)) 70))
-;                  c1
-;                  (collision-t c1 (rest c2)))]))
 
 ;; ========================================= TICK-FOR-SCORE
-;; lom loi scr -> int
+
+;; --------------- Collision-score
+;; (ListOfInvader ListOfMissile -> ListOfInvader ListOfMissile)
+;; interp: produce list of invaders that have not been hit by missiles from the list of invaders
+;;         define successful hit is missiles that meet invaders within "HIT RANGE" on x & y coordinator
+
+
+(check-expect (collision-score empty (cons (make-missile 150 300) (cons (make-missile 100 200) empty))) empty) ; (cons none-invaders listofmissiles)
+(check-expect (collision-score (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) empty) ; (cons listofinvaders none-missiles)
+              (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)))
+(check-expect (collision-score (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) ; (cons listofinvaders listofmissiles)
+                           (cons (make-missile 150 100) (cons (make-missile 100 200) empty)))
+              (collision-score (cons (make-invader 150 100 -1) empty)
+                           (cons (make-missile 150 100) (cons (make-missile 100 200) empty))))
+(check-expect (collision-score (cons (make-invader 150 100 1) (cons (make-invader 150 100 -1) empty)) ; (cons listofinvaders listofmissiles)
+                           (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))
+              (cons (make-invader 150 100 1) (collision-score (cons (make-invader 150 100 -1) empty)
+                                                          (cons (make-missile 150 300) (cons (make-missile 100 200) empty)))))
+
+
 (define (collision-score loi lom) ; loi: listofinvader / lom: listofmissile
   (cond [(empty? loi) empty]
         [(empty? lom) loi]
@@ -499,7 +482,8 @@ SPACE INVADER PROGRAM
                   (collision-score (rest loi) lom)
                   (cons (first loi) (collision-score (rest loi) lom)))]))
 
-;; -> int
+;; --------------- Count-score
+;; (list -> int
 (define (count-score loi scr loi-r)
   (+ scr (- (length loi) (length loi-r))))
   
