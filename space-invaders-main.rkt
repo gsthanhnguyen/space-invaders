@@ -727,7 +727,8 @@ MAIN FEATURES:
 ;; no need test examples
 
 (define (gameover-scene c)
-  (place-image GAMEEND 200 350 BACKGROUND))
+  (place-image (text (number->string (game-scores c)) 30 "white") 130 24
+               (place-image GAMEEND 200 350 BACKGROUND)))
 
 ; ======== START GAME
 ;; interp: only need to push PLAY button to start the game
