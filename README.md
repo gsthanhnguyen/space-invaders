@@ -30,6 +30,8 @@ Space Invaders game's features:
 
 ### Game play screen capture
 
+<img src="https://github.com/gsthanhnguyen/space-invaders-game/blob/main/demo/space-invaders-demo.gif" width="200">
+
 Space ship fires missiles and when missiles hit invaders
 
 ![1658998501134](image/README/1658998501134.png)
